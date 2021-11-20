@@ -1,0 +1,15 @@
+{
+  "name": "notion-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Francisco Manuel Soto Ramírez",
+  "license": "ISC",
+  "dependencies": {
+    "@notionhq/client": "^0.4.9",
+    "dotenv": "^10.0.0"
+  }
+}
