@@ -5,15 +5,14 @@ const notion = new Client({ auth: process.env.NOTION_INTEGRATION_KEY });
 const originDatabaseId = process.env.NOTION_ORIGIN_DATABASE_ID;
 const destinationDatabaseId = process.env.NOTION_DESTINATION_DATABASE_ID;
 
-let allHabits = [];
-let newAllHabits = {};
+let allHabits = {};
 
 async function readItems() {
 	let cursor = undefined;
 
 	try {
 		while (true) {
-			const { results, next_cursor } = await notion.databases.query({
+			const DATABASE_QUERY = {
 				database_id: originDatabaseId,
 				start_cursor: cursor,
 				sorts: [
@@ -22,11 +21,20 @@ async function readItems() {
 						direction: "ascending",
 					},
 				],
+			};
+			const { results, next_cursor } = await notion.databases.query({
+				DATABASE_QUERY,
+			});
+			results.forEach(item => {
+				let date = item.properties.Date.date.start;
+				console.log(date);
+				if (allHabits[date]) {
+					allHabits[date].push(item.properties);
+				} else {
+					allHabits[date] = [item.properties];
+				}
 			});
 
-			//TODO: Process the data here, instead of storing in a big array in memory
-			allHabits.push(...results);
-			console.log(next_cursor);
 			cursor = next_cursor;
 			if (!next_cursor) {
 				break;
@@ -37,69 +45,61 @@ async function readItems() {
 	}
 }
 
-//Merge in newAllHabits all the items by date
 async function combineItems() {
-	allHabits.forEach(item => {
-		if (newAllHabits[item.properties.Date.date.start]) {
-			newAllHabits[item.properties.Date.date.start].push(item.properties);
-		} else {
-			newAllHabits[item.properties.Date.date.start] = [item.properties];
-		}
-	});
-
-	let dates = Object.keys(newAllHabits);
+	let dates = Object.keys(allHabits);
 	for (date of dates) {
 		let newItem = {};
 
-		newAllHabits[date].forEach(item => {
+		allHabits[date].forEach(item => {
 			Object.keys(item).forEach(property => {
-				if (
-					(item[property].rich_text != undefined &&
-						item[property].rich_text.length != 0) ||
-					(item[property].multi_select != undefined &&
-						item[property].multi_select.length != 0)
-				) {
-					if (date == "2021-09-04") {
-						console.log(item[property]);
-					}
+				const HAS_RICH_TEXT =
+					item[property].rich_text != undefined &&
+					item[property].rich_text.length != 0;
 
-					newItem[property] =
-						item[property].rich_text != undefined
-							? {
-									rich_text: [
-										{
-											type: "text",
-											text: {
-												content: item[property].rich_text[0].text.content,
-											},
-										},
-									],
-							  }
-							: {
-									multi_select: [],
-							  };
-					if (item[property].multi_select != undefined) {
-						item[property].multi_select.forEach(multi_select_item => {
-							newItem[property].multi_select.push({
-								name: multi_select_item.name,
-							});
+				const HAS_MULTI_SELECT =
+					item[property].multi_select != undefined &&
+					item[property].multi_select.length != 0;
+
+				//Building merged item. Adding  rich text
+				if (HAS_RICH_TEXT) {
+					newItem[property] = {
+						rich_text: [
+							{
+								type: "text",
+								text: {
+									content: item[property].rich_text[0].text.content,
+								},
+							},
+						],
+					};
+				}
+
+				//Building merged item. Adding multi_select
+				if (HAS_MULTI_SELECT) {
+					newItem[property] = { ...newItem[property], multi_select: [] };
+
+					item[property].multi_select.forEach(multi_select_item => {
+						newItem[property].multi_select.push({
+							name: multi_select_item.name,
 						});
-					}
+					});
 				}
 			});
 		});
-		newAllHabits[date] = { ...newItem, Date: { date: { start: date } } };
+
+		//Transform to Notion API format.
+		allHabits[date] = { ...newItem, Date: { date: { start: date } } };
 	}
 
-	// console.log(newAllHabits["2021-09-04"]["Type Training"]);
+	// console.log(allHabits["2021-09-04"]["Type Training"]);
 }
 
 async function insertion() {
-	Object.keys(newAllHabits).forEach(async key => {
+	Object.keys(allHabits).forEach(async key => {
 		try {
-			const response = await notion.pages.create({
+			await notion.pages.create({
 				parent: { database_id: destinationDatabaseId },
-				properties: newAllHabits[key],
+				properties: allHabits[key],
 			});
 		} catch (error) {
 			console.error(date, " ", error);
