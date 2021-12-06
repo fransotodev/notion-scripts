@@ -1,6 +1,7 @@
 # Notion API
 
-A collection of different scripts I have made for my own Notion Workspace
+A collection of different scripts I have made for my own Notion Workspace.
+Create a .env file with you tokens for authentication and Databases_ids
 
 ## deleteAllRecords
 
