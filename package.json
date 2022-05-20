@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "newimages": "node scripts/imagesByTableTitle.js new",
+    "images": "node scripts/imagesByTableTitle.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Francisco Manuel Soto Ramírez",

@@ -1,9 +1,9 @@
 const { Client } = require("@notionhq/client");
 require("dotenv").config();
-const getImageAndPriceFromAmazon = require("./Utils/getImageAndPriceFromAmazon");
-const blockHasAnyChildrenWithImageContent = require("./Utils/blockHasAnyChildrenWithImageContent");
-const setImage = require("./Utils/setImage");
-const setPrice = require("./Utils/setPrice");
+const getImageAndPriceFromAmazon = require("../Utils/getImageAndPriceFromAmazon");
+const blockHasAnyChildrenWithImageContent = require("../Utils/blockHasAnyChildrenWithImageContent");
+const setImage = require("../Utils/setImage");
+const setPrice = require("../Utils/setPrice");
 const notion = new Client({ auth: process.env.NOTION_IMAGE_BY_TITLE_KEY });
 const databaseId = process.env.NOTION_MASTER_CONTENT_DATABASE_ID;
 const args = process.argv.slice(2);
