@@ -1,41 +1,25 @@
 const fetch = require("node-fetch");
 
 const getImageAndPriceFromAmazon = async keywords => {
-	const url = `https://www.amazon.com/s?k=${keywords.replace(
-		/\s/g,
-		"+"
-	)}&i=digital-text`;
+	const url = `https://www.amazon.com/s?k=${keywords.replace(/\s/g, "+")}&i=digital-text`;
 
 	const response = await fetch(url);
 	const fullResponse = await response.text();
 
-	let allLinks = fullResponse
+	let allImageLinks = fullResponse
 		.toString()
-		.match(/MAIN-SEARCH_RESULTS-[0-9]([\s\S]*?)<img.*?>/g)[0] //Entire ASIN
+		.match(/MAIN-SEARCH_RESULTS-[0-9]([\s\S]*?)<img.*?>/g)[0] //Entire Product
 		.match(/srcset=\".*?>/g)[0] //Just the image links
 		.match(/https.*?[,|"]/g); //Match all links from srcset
-	let highestResolutionLink = allLinks[allLinks.length - 1];
-	highestResolutionLink = highestResolutionLink.replace(/\s.*/, "");
+	let highestResolutionImageLink = allImageLinks[allImageLinks.length - 1];
+	highestResolutionImageLink = highestResolutionImageLink.replace(/\s.*/, "");
 
-	const anotherASIN = fullResponse
+	const productForPrice = fullResponse
 		.toString()
-		.match(
-			/MAIN-SEARCH_RESULTS-[0-9]([\s\S]*?)<span class="a-offscreen">([\s\S]*?)<\/span>/
-		)[0];
-	const another = anotherASIN.match(
-		/<span class="a-offscreen">([\s\S]*?)<\/span>/
-	)[0];
-	const price = another.replace(/[^0-9\.]/g, "");
-	return { imageLink: highestResolutionLink, price };
-};
-
-const getMethods = obj => {
-	let properties = new Set();
-	let currentObj = obj;
-	do {
-		Object.getOwnPropertyNames(currentObj).map(item => properties.add(item));
-	} while ((currentObj = Object.getPrototypeOf(currentObj)));
-	return [...properties.keys()].filter(item => typeof obj[item] === "function");
+		.match(/MAIN-SEARCH_RESULTS-[0-9]([\s\S]*?)<span class="a-offscreen">([\s\S]*?)<\/span>/)[0];
+	const productIntermForPrice = productForPrice.match(/<span class="a-offscreen">([\s\S]*?)<\/span>/)[0];
+	const price = productIntermForPrice.replace(/[^0-9\.]/g, "");
+	return { imageUrl: highestResolutionImageLink, price };
 };
 
 module.exports = getImageAndPriceFromAmazon;

@@ -1,12 +1,14 @@
 const { Client } = require("@notionhq/client");
-require("dotenv").config();
 const getImageAndPriceFromAmazon = require("../Utils/getImageAndPriceFromAmazon");
-const blockHasAnyChildrenWithImageContent = require("../Utils/blockHasAnyChildrenWithImageContent");
-const setImage = require("../Utils/setImage");
+const setImageLinkInCoverImageProperty = require("../Utils/setImageLinkInCoverImageProperty");
 const setPrice = require("../Utils/setPrice");
+require("dotenv").config();
+
 const notion = new Client({ auth: process.env.NOTION_IMAGE_BY_TITLE_KEY });
 const databaseId = process.env.NOTION_MASTER_CONTENT_DATABASE_ID;
 const args = process.argv.slice(2);
+
+const COVER_IMAGE_PROPERTY_NAME = "Cover Image";
 
 const booksFilter = {
 	and: [
@@ -33,67 +35,48 @@ const booksSort = [
 ];
 
 (async () => {
-	let pendingPromises = [];
+	const pendingPromises = [];
 	let exit = false;
-	try {
-		let current_cursor = undefined;
-		while (!exit) {
-			let { results, next_cursor } = await notion.databases.query({
-				database_id: databaseId,
-				start_cursor: current_cursor,
-				filter: booksFilter,
-				sorts: booksSort,
-			});
 
-			for (page of results) {
-				try {
-					let bookTitle = page.properties.Name.title[0]?.text.content;
+	let current_cursor = undefined;
+	while (!exit) {
+		const { results, next_cursor } = await notion.databases.query({
+			database_id: databaseId,
+			start_cursor: current_cursor,
+			filter: booksFilter,
+			sorts: booksSort,
+		});
 
-					let blockChildren = await notion.blocks.children.list({
-						block_id: page.id,
-					});
-					if (!blockHasAnyChildrenWithImageContent(blockChildren)) {
-						let additionalQuery =
-							page.properties["Book Filter"].select.name === "Ficción"
-								? "+hardcover"
-								: "";
+		for (page of results) {
+			try {
+				const bookCoverImageObject = page.properties["Cover Image"];
+				const bookHasCoverImage = bookCoverImageObject.files.length !== 0;
 
-						let { imageLink, price } = await getImageAndPriceFromAmazon(
-							`${bookTitle}${additionalQuery}`
-						);
+				if (!bookHasCoverImage) {
+					const bookTitle = page.properties.Name.title[0]?.text.content;
+					const additionalQuery = page.properties["Book Filter"].select.name === "Ficción" ? "+hardcover" : "";
 
-						console.log(imageLink, " - > ", price);
+					const { imageUrl, price } = await getImageAndPriceFromAmazon(`${bookTitle}${additionalQuery}`);
 
-						//Set image
-						pendingPromises.push(setImage(notion, page.id, imageLink));
+					console.log(imageUrl, " - > ", price);
 
-						//Sleep
-						await new Promise(resolve => setTimeout(resolve, 1000));
+					pendingPromises.push(setImageLinkInCoverImageProperty(notion, COVER_IMAGE_PROPERTY_NAME, page.id, imageUrl));
 
-						//Set Price
-						pendingPromises.push(setPrice(notion, page.id, price));
-					} else {
-						if (args && args[0] === "new") {
-							exit = 1;
-							break;
-						}
+					await new Promise(resolve => setTimeout(resolve, 750)); //Avoid Notion's API throttling
+
+					pendingPromises.push(setPrice(notion, page.id, price));
+				} else {
+					if (args && args[0] === "new") {
+						exit = true;
+						break;
 					}
-				} catch (error) {
-					console.error(
-						"Invalid ",
-						page.properties.Name.title[0]?.text.content,
-						" ",
-						error
-					);
 				}
+			} catch (error) {
+				console.error("Error at book: ", page.properties.Name.title[0]?.text.content, " ", error);
 			}
-			if (!next_cursor || exit) break; //No more elements in database
-			current_cursor = next_cursor;
 		}
-	} catch (e) {
-		console.error(e);
+		if (!next_cursor || exit) break; //No more elements in database
+		current_cursor = next_cursor;
 	}
-
 	Promise.all(pendingPromises);
-	console.log("Script Finished");
 })();

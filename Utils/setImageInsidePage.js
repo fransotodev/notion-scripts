@@ -1,4 +1,4 @@
-const setImage = (notion, pageId, imageLink) => {
+const setImageInsidePage = (notion, pageId, imageLink) => {
 	return notion.blocks.children.append({
 		block_id: pageId,
 		children: [
@@ -15,4 +15,4 @@ const setImage = (notion, pageId, imageLink) => {
 		],
 	});
 };
-module.exports = setImage;
+module.exports = setImageInsidePage;
