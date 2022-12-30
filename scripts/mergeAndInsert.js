@@ -1,7 +1,7 @@
 const { Client } = require("@notionhq/client");
 require("dotenv").config();
 
-const notion = new Client({ auth: process.env.NOTION_MERGE_CELLS_KEY });
+const notion = new Client({ auth: process.env.NOTION_PERSONAL_NOTION_SCRIPTS_KEY });
 const originDatabaseId = process.env.NOTION_ORIGIN_DATABASE_ID;
 const destinationDatabaseId = process.env.NOTION_DESTINATION_DATABASE_ID;
 
@@ -16,7 +16,7 @@ const destinationDatabaseId = process.env.NOTION_DESTINATION_DATABASE_ID;
 				start_cursor: cursor,
 				sorts: [
 					{
-						property: "Date",
+						property: "DATE_CONSUMED",
 						direction: "ascending",
 					},
 				],

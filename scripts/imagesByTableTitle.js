@@ -8,7 +8,7 @@ const notion = new Client({ auth: process.env.NOTION_IMAGE_BY_TITLE_KEY });
 const databaseId = process.env.NOTION_MASTER_CONTENT_DATABASE_ID;
 const args = process.argv.slice(2);
 
-const COVER_IMAGE_PROPERTY_NAME = "Cover Image";
+const COVER_IMAGE_PROPERTY_NAME = "COVER_IMAGE";
 
 const booksFilter = {
 	and: [
@@ -29,7 +29,7 @@ const booksFilter = {
 
 const booksSort = [
 	{
-		property: "Date",
+		property: "DATE_CONSUMED",
 		direction: "descending",
 	},
 ];
@@ -49,7 +49,7 @@ const booksSort = [
 
 		for (page of results) {
 			try {
-				const bookCoverImageObject = page.properties["Cover Image"];
+				const bookCoverImageObject = page.properties["COVER_IMAGE"];
 				const bookHasCoverImage = bookCoverImageObject.files.length !== 0;
 
 				if (!bookHasCoverImage) {
