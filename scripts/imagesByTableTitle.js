@@ -20,8 +20,8 @@ const booksFilter = {
 		},
 		{
 			property: "Finished",
-			checkbox: {
-				equals: true,
+			status: {
+				does_not_equal: "Not Started",
 			},
 		},
 	],
